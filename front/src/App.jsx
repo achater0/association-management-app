@@ -1,21 +1,9 @@
-import { useEffect, useState } from 'react';
+import Login from './pages/login/login.jsx';
 
-function App() {
-  const [message, setMessage] = useState('Connecting to backend...');
-
-  useEffect(() => {
-    fetch('http://localhost:8080/api/health')
-      .then((res) => res.json())
-      .then((data) => setMessage(data.status))
-      .catch(() => setMessage('Failed to connect to backend. Make sure your server is running!'));
-  }, []);
-
+export default function App() {
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-      <h1>Association Management System</h1>
-      <p>Backend Status: <strong>{message}</strong></p>
+    <div className="min-h-screen min-w-screen bg-[#0d1117] ">
+      <Login />
     </div>
   );
 }
-
-export default App;
