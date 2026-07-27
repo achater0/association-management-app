@@ -1,26 +1,13 @@
-const { Sequelize } = require('sequelize');
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
-// Initialize Sequelize to use SQLite
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  // Saves the database file cleanly inside your back directory
-  storage: path.join(__dirname, '../database.sqlite'), 
-  logging: false, 
+// Connect to the specific database file
+const db = new sqlite3.Database(path.join(__dirname, '../ams_database.db'), (err) => {
+    if (err) {
+        console.error("connection failed:", err.message);
+    } else {
+        console.log("Connected to the database.");
+    }
 });
 
-const connectDB = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('SQLite Database connected successfully!');
-    
-    // Creates or updates database tables automatically to match models
-    await sequelize.sync({ alter: true });
-    console.log('Database tables synchronized.');
-  } catch (error) {
-    console.error('Database connection failed:', error.message);
-    process.exit(1);
-  }
-};
-
-module.exports = { sequelize, connectDB };
+module.exports = db;

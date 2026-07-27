@@ -1,0 +1,62 @@
+Phase 1: Database & Architecture
+The foundation of your application. All data relationships are established here.
+
+Define User Schema: Map out members, their roles (Bureau, Subscriber), and authentication details.
+
+Define Project Schema: Track project lifecycle, budgets, and committee assignments.
+
+Define Financial Schema: Create the ledger for subscriptions, donations, and expenses linked to users and projects.
+
+Initialize Database: Write and execute the SQL CREATE TABLE scripts in SQLite.
+
+Map Foreign Keys: Ensure every transaction securely links back to a specific user and project.
+
+Phase 2: Backend & Security
+The brain of your application. Handles business logic and secures data access.
+
+Initialize Server: Set up the Node.js and Express environment.
+
+Implement Authentication: Integrate JSON Web Tokens (JWT) for secure user login.
+
+Configure Access Control: Write middleware to ensure only Bureau members can edit financial data.
+
+Build CRUD Endpoints: Develop API routes for managing users, projects, and transactions.
+
+Configure File Storage: Set up multer to securely save uploaded receipts and CIN scans to a local directory.
+
+Phase 3: Frontend & UI
+The face of your application. Where users interact with the system.
+
+Set Up React: Initialize the project and configure a routing system.
+
+Build Dashboards: Create separate UI views for standard subscribers and Bureau administrators.
+
+Develop Forms: Use react-hook-form to capture transaction details and project updates.
+
+Integrate API: Connect the React frontend to your Express backend using fetch or axios.
+
+Implement Visuals: Use charting libraries to display budget vs. expense progress visually.
+
+Phase 4: Advanced Features
+The professional touches that automate manual administrative work.
+
+Integrate OCR Module: Connect Tesseract.js to scan CIN images and auto-fill registration inputs.
+
+Set Up Email Automation: Configure Nodemailer with node-cron to send monthly payment reminders.
+
+Build PDF Generator: Use jspdf to convert financial tables into printable reports for the General Assembly.
+
+Create Audit Interface: Build a specific view for the Treasurer to cross-reference system transactions with bank statements.
+
+Phase 5: Testing & Deployment
+The final polish to ensure reliability and make the system live.
+
+Conduct Financial Testing: Verify that all subscription and expense calculations are highly accurate.
+
+Secure File Access: Ensure the uploads folder containing sensitive documents is restricted and not publicly accessible.
+
+Configure VPS Server: Provision a Linux server for hosting.
+
+Deploy Backend: Use PM2 to run the Express API continuously in the background.
+
+Deploy Frontend: Build the React app and serve it using Nginx as a reverse proxy.
