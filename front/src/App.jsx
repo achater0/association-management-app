@@ -4,23 +4,17 @@ import ProtectedRoute from './components/routes/ProtectedRoute';
 import BureauRoute from './components/routes/BureauRoute';
 import Login from './pages/auth/Login';
 import SubscriberDashboard from './pages/subscriber/Dashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 // Placeholder views for testing routing
 
 
-const AdminDashboard = () => (
-  <div className="p-8">
-    <h1 className="text-2xl font-bold text-indigo-600">Bureau Admin Dashboard</h1>
-    <p>Treasury overview, member manager, and project controls.</p>
-  </div>
-);
 
 function App() {
   return (
     <AuthProvider>
       <Router>
         <Routes>
-          {/* Public Auth Route */}
           <Route path="/login" element={<Login />} />
 
           {/* Normal Subscriber Protected Route */}
