@@ -1,53 +1,103 @@
-# Association Management App
+# Omni-Association
 
-Small association management system (Node/Express backend + React frontend) for managing members, projects and treasury operations.
+A lightweight, fast web application for managing non-profit association memberships, finances, projects, and bureau reporting.
 
-## Features added
-- Member management with roles (Bureau, Subscriber)
-- Projects and project committee membership
-- Transactions ledger (Income / Expense) with category, description, user and project links
-- Upload and store proof documents (images / PDFs) for transactions
-- User financial history and per-user balance calculation
-- Email sending endpoint (SMTP via nodemailer)
+## Tech Stack
 
-## Important files
-- Backend server: `back/server.js`
-- Frontend app: `front/` (Vite + React)
-- SQLite DB file: `back/ams_database.db`
-- Uploaded files directory: `back/uploads`
+This project is built with a simple, reliable stack: Node.js + Express for the backend API, React + Vite for the frontend interface, SQLite for local persistence, JWT for secure authentication, and Multer for document uploads.
 
-## Environment variables
-Create a `.env` file in `back/` with at least the following variables:
+## Repository Blueprint
 
 ```
-# Backend
-PORT=8080
-JWT_SECRET=your_jwt_secret_here
+.
+├── README.md
+├── roadMap
+├── back
+│   ├── .env
+│   ├── .gitignore
+│   ├── package.json
+│   ├── server.js
+│   ├── seed.js
+│   ├── ams_database.db
+│   ├── uploads/
+│   ├── config/
+│   │   ├── db.js
+│   │   └── schema.js
+│   ├── controllers/
+│   ├── middleware/
+│   │   └── authMiddleware.js
+│   ├── models/
+│   │   ├── projectModel.js
+│   │   ├── transactionModel.js
+│   │   └── userModel.js
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── projectRoutes.js
+│   │   ├── transactionRoutes.js
+│   │   └── userRoutes.js
+│   └── utils/
+├── front
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── index.html
+│   ├── eslint.config.js
+│   ├── public/
+│   └── src/
+│       ├── App.jsx
+│       ├── index.css
+│       ├── main.jsx
+│       ├── assets/
+│       ├── components/
+│       │   ├── common/
+│       │   ├── layout/
+│       │   ├── receipts/
+│       │   └── routes/
+│       ├── context/
+│       │   └── AuthContext.jsx
+│       ├── pages/
+│       │   ├── admin/
+│       │   ├── auth/
+│       │   └── subscriber/
+│       ├── services/
+│       │   ├── api.js
+│       │   ├── authService.js
+│       │   ├── projectService.js
+│       │   ├── transactionService.js
+│       │   └── userService.js
+│       └── utils/
+└── .gitignore
+```
 
-# SMTP (used by POST /api/notify/send-email)
+## Local Setup & Infrastructure
+
+1. Prepare the backend environment
+
+Create a `.env` file inside the `back/` folder:
+
+```env
+PORT=8080
+JWT_SECRET=your_super_secure_jwt_secret
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=you@example.com
 SMTP_PASS=your_smtp_password
-# optional
 SMTP_FROM="Association <you@example.com>"
 ```
 
-Frontend can set the API base URL via `front/.env` (optional):
+2. Prepare the frontend environment
 
-```
+Create a `.env` file inside the `front/` folder if you want to override the default API URL:
+
+```env
 VITE_API_BASE_URL=http://localhost:8080/api
 ```
 
-## Uploads & API notes
-- The backend serves uploaded documents at: `http://<HOST>:<PORT>/uploads/<filename>`
-- When creating a transaction (POST `/api/transactions`), the upload field name is `document` (multipart/form-data). The backend also accepts JSON with `proof_url` if you prefer an external link.
-- Transaction POST requires: `type` ("Income" or "Expense"), `amount`, `category`. Optional: `description`, `user_id`, `project_id`, `date`, `document` (file) or `proof_url` (string).
+3. Run the project locally
 
-## Running locally
-From project root, open two terminals.
+Open two terminals.
 
 Backend:
+
 ```bash
 cd back
 npm install
@@ -55,31 +105,61 @@ npm run dev
 ```
 
 Frontend:
+
 ```bash
 cd front
 npm install
 npm run dev
 ```
 
-## Testing email
-Use the notify endpoint to test SMTP config:
+4. Access the application
 
-POST `http://localhost:8080/api/notify/send-email`
-Body (JSON):
-```json
-{
-  "to": "recipient@example.com",
-  "subject": "Test email",
-  "text": "Hello from Association app"
-}
-```
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8080/api
+
+## Database Architecture
+
+The application uses SQLite as a lightweight relational database. The schema initializes automatically on startup and manages the main association domains:
+
+- Users and roles: president, treasurer, secretary, counselor, subscriber, etc.
+- Projects and committee membership
+- Transactions and financial records
+- Payment proofs and document uploads
+- Annual report publication and project reports
+
+The core tables include:
+
+- `users`
+- `projects`
+- `project_members`
+- `transactions`
+- `annual_reports`
+
+## Project Tasks & Roadmap
+
+The project currently covers the most important association-management flows:
+
+- Members include bureau officers and standard subscribers.
+- Bureau members can manage roles and restrict sensitive actions.
+- The president can manage the bureau, while some role changes remain protected.
+- Each member can pay annual dues and see their membership balance.
+- Association projects can be created and tracked.
+- Project committees can be assigned to members.
+- Transactions can be logged as income or expense.
+- Proof documents and payment evidence can be uploaded.
+- End-of-project reports can be generated from project transactions.
+- Annual bureau reports can be published for subscribers.
+- Subscribers can view their contribution history and reports.
+
+## Quick Progress Summary
+
+- Status: In Active Development
+- Core features completed: Authentication, role-based access, dashboard flows, treasury, projects, committee management, uploads, and report publishing.
+- Focus area: final refinements, UX polish, and production readiness checks.
 
 ## Notes
-- The server initializes DB tables automatically using `back/config/schema.js` on startup.
-- `back/.gitignore` includes `uploads/` and the DB file to avoid committing binaries.
 
-If you'd like, I can:
-- Add automated confirmation emails on transaction creation
-- Commit these changes and open a minimal README in `back/` as well
-- Add short Postman examples or curl snippets for core endpoints
+- The backend serves uploaded files from `/uploads`.
+- Database tables are initialized automatically through `back/config/schema.js`.
+- The app is designed as a simple local-association management platform and is intentionally lightweight rather than heavy-framework based.
 
