@@ -15,8 +15,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-database.sqlite
-ams_database.db
+*.db
+*.sqlite
+*.sqlite3
 
 # Uploaded receipts and scans
 uploads/
