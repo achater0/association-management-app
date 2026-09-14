@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = (userData, authToken) => {
+    // Store user as provided by backend (do not derive isBureau here)
     localStorage.setItem('token', authToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(authToken);

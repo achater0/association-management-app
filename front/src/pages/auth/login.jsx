@@ -20,12 +20,9 @@ const Login = () => {
     try {
       const data = await loginUser({ email, password });
       login(data.user, data.token);
-
-      if (data.user.isBureau) {
-        navigate('/admin/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      // Always land users on the common subscriber dashboard.
+      // Bureau members can switch to the admin area via the navbar.
+      navigate('/dashboard');
     } catch (err) {
       setError(
         err.response?.data?.error || 'Failed to login. Please check your credentials.'

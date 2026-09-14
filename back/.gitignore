@@ -16,3 +16,7 @@ npm-debug.log*
 Thumbs.db
 
 database.sqlite
+ams_database.db
+
+# Uploaded receipts and scans
+uploads/

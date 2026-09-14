@@ -1,8 +1,22 @@
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
+// Decode JWT payload without external deps
+const parseJwt = (token) => {
+  try {
+    const payload = token.split('.')[1];
+    const padded = payload.padEnd(payload.length + (4 - (payload.length % 4)) % 4, '=');
+    const decoded = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decoded);
+  } catch (e) {
+    return null;
+  }
+};
+
 const Navbar = () => {
-  const { user, logout, isBureau } = useAuth();
+  const { user, logout, token } = useAuth();
+  const payload = token ? parseJwt(token) : null;
+  const isBureau = payload?.isBureau || user?.isBureau;
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -30,6 +44,25 @@ const Navbar = () => {
               <span className="ml-2 bg-emerald-50 text-emerald-700 text-xs px-2.5 py-0.5 rounded-full border border-emerald-200 font-medium">
                 Bureau Admin
               </span>
+            )}
+          </div>
+
+          {/* Navigation Links */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-sm text-slate-600 hover:text-slate-900 font-medium px-3 py-1 rounded-md hover:bg-slate-50 transition"
+            >
+              Dashboard
+            </button>
+
+            {isBureau && (
+              <button
+                onClick={() => navigate('/admin/dashboard')}
+                className="text-sm text-emerald-600 hover:text-emerald-800 font-semibold px-3 py-1 rounded-md border border-emerald-100 hover:bg-emerald-50 transition"
+              >
+                Admin
+              </button>
             )}
           </div>
 

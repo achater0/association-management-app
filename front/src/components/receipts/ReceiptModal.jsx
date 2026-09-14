@@ -95,6 +95,20 @@ const ReceiptModal = ({ transaction, onClose }) => {
                 {transaction.amount} MAD
               </span>
             </div>
+
+            {/* Uploaded Proof (if any) */}
+            {transaction.document_path && (
+              <div className="mt-3 text-sm">
+                <span className="text-xs text-slate-500">Proof Document:</span>
+                <div className="mt-2">
+                  {transaction.document_path.endsWith('.pdf') ? (
+                    <a href={transaction.document_path} target="_blank" rel="noreferrer" className="text-emerald-600 underline">Open PDF Document</a>
+                  ) : (
+                    <img src={transaction.document_path} alt="proof" className="max-w-full h-auto rounded-lg border" />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Official Signature & Cachet Section */}

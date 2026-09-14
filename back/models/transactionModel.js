@@ -5,17 +5,17 @@ const Transaction = {
   // 1. Log a new income or expense
   create: (data) => {
     return new Promise((resolve, reject) => {
-      const { type, amount, category, description, date, user_id, project_id } = data;
+      const { type, amount, category, description, date, user_id, project_id, document_path } = data;
       const transactionDate = date || new Date().toISOString().split('T')[0];
 
       const sql = `
-        INSERT INTO transactions (type, amount, category, description, date, user_id, project_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO transactions (type, amount, category, description, date, document_path, user_id, project_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
 
       db.run(
         sql,
-        [type, amount, category, description, transactionDate, user_id || null, project_id || null],
+        [type, amount, category, description, transactionDate, document_path || null, user_id || null, project_id || null],
         function (err) {
           if (err) reject(err);
           else resolve(this.lastID);
@@ -28,7 +28,7 @@ const Transaction = {
   findAll: () => {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT t.*, u.name as member_name, p.title as project_title
+        SELECT t.*, u.name as user_name, p.title as project_title
         FROM transactions t
         LEFT JOIN users u ON t.user_id = u.id
         LEFT JOIN projects p ON t.project_id = p.id
@@ -64,7 +64,7 @@ const Transaction = {
   findByProject: (projectId) => {
     return new Promise((resolve, reject) => {
       const sql = `
-        SELECT t.*, u.name as member_name 
+        SELECT t.*, u.name as user_name 
         FROM transactions t
         LEFT JOIN users u ON t.user_id = u.id
         WHERE t.project_id = ?
@@ -80,7 +80,7 @@ const Transaction = {
   getUserFinancials: (userId) => {
     return new Promise((resolve, reject) => {
       const historySql = `
-        SELECT id, type, amount, category, description, date, project_id
+        SELECT id, type, amount, category, description, date, project_id, document_path
         FROM transactions
         WHERE user_id = ?
         ORDER BY date DESC, id DESC

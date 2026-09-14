@@ -25,7 +25,7 @@ const User = {
 
   findAll: () => { // Renamed from findALL to findAll
     return new Promise((resolve, reject) => {
-      const sql = `SELECT id, name, email, role, cin_number, phone FROM users`;
+      const sql = `SELECT id, name, email, role, cin_number, phone, cin_file FROM users`;
       db.all(sql, [], (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
@@ -35,7 +35,7 @@ const User = {
 
   findById: (id) => {
     return new Promise((resolve, reject) => {
-      const sql = `SELECT id, name, email, role, cin_number, phone FROM users WHERE id = ?`;
+      const sql = `SELECT id, name, email, role, cin_number, phone, cin_file FROM users WHERE id = ?`;
       db.get(sql, [id], (err, row) => {
         if (err) reject(err);
         else resolve(row);

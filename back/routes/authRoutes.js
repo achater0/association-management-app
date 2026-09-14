@@ -28,17 +28,32 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    // 3. Determine if user belongs to Bureau/Admin level
-    const bureauRoles = ['Admin', 'President', 'Vice-President', 'Treasurer', 'Secretary'];
-    const isBureau = bureauRoles.includes(user.role);
+    // 3. Normalize role: map common French labels to canonical internal role values
+    const roleMap = {
+      'Président': 'President',
+      'Vice-président': 'Vice-President',
+      'Trésorier': 'Treasurer',
+      'Vice-trésorier': 'Vice-Treasurer',
+      'Secrétaire': 'Secretary',
+      'Secrétaire général': 'Secretary-General',
+      'Vice-secrétaire général': 'Vice-Secretary-General',
+      'Conseiller': 'Counselor',
+      'Abonné': 'Subscriber'
+    };
+
+    const canonicalRole = roleMap[user.role] || user.role;
+
+    // Determine bureau membership from canonical roles
+    const bureauRoles = ['Admin', 'President', 'Vice-President', 'Treasurer', 'Secretary', 'Secretary-General', 'Vice-Secretary-General'];
+    const isBureau = bureauRoles.includes(canonicalRole);
 
     // 4. Generate JWT token
     const token = jwt.sign(
-      { 
-        userId: user.id, 
-        email: user.email, 
-        role: user.role, 
-        isBureau 
+      {
+        userId: user.id,
+        email: user.email,
+        role: canonicalRole,
+        isBureau
       },
       JWT_SECRET,
       { expiresIn: '24h' }
@@ -48,11 +63,11 @@ router.post('/login', async (req, res) => {
     res.status(200).json({
       message: 'Login successful',
       token,
-      user: {
+        user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role,
+        role: canonicalRole,
         isBureau // Frontend uses this flag to route to Normal vs Admin Dashboard
       }
     });

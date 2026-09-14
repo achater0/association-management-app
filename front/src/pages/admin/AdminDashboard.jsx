@@ -2,19 +2,25 @@ import { useState, useEffect } from 'react';
 import Navbar from '../../components/layout/Navbar';
 import ReceiptModal from '../../components/receipts/ReceiptModal';
 import { getUsers, updateUserRole, createUser } from '../../services/userService';
-import { getProjects, createProject } from '../../services/projectService';
+import { getProjects, createProject, addProjectMember, removeProjectMember, publishAnnualReport } from '../../services/projectService';
 import { createTransaction, getTreasurySummary, getTransactions } from '../../services/transactionService';
 
-const BUREAU_ROLES = [
-  'Président',
-  'Vice-président',
-  'Trésorier',
-  'Vice-trésorier',
-  'Secrétaire général',
-  'Vice-secrétaire général',
-  'Conseiller',
-  'Abonné'
+// Canonical role values (internal) with French labels (display)
+const ROLE_OPTIONS = [
+  { value: 'President', label: 'Président' },
+  { value: 'Vice-President', label: 'Vice-président' },
+  { value: 'Treasurer', label: 'Trésorier' },
+  { value: 'Vice-Treasurer', label: 'Vice-trésorier' },
+  { value: 'Secretary-General', label: 'Secrétaire général' },
+  { value: 'Vice-Secretary-General', label: 'Vice-secrétaire général' },
+  { value: 'Counselor', label: 'Conseiller' },
+  { value: 'Subscriber', label: 'Abonné' }
 ];
+
+const getLabelForRole = (value) => {
+  const opt = ROLE_OPTIONS.find((r) => r.value === value || r.label === value);
+  return opt ? opt.label : value;
+};
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('treasury'); // 'treasury' | 'projects' | 'members'
@@ -36,12 +42,17 @@ const AdminDashboard = () => {
     description: '',
     user_id: '',
     project_id: '',
+    payment_method: 'Cash',
     proof_url: '',
+    document: null,
+    bank_proof: null,
     date: new Date().toISOString().split('T')[0]
   });
 
   const [projectForm, setProjectForm] = useState({ title: '', description: '', budget: '' });
-  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'Abonné' });
+  const [projectMemberForm, setProjectMemberForm] = useState({ project_id: '', user_id: '', committee_role: 'Member' });
+  const [annualReportForm, setAnnualReportForm] = useState({ year: new Date().getFullYear(), file: null });
+  const [userForm, setUserForm] = useState({ name: '', email: '', role: 'Subscriber' });
 
   useEffect(() => {
     fetchAllData();
@@ -85,7 +96,10 @@ const AdminDashboard = () => {
         description: '',
         user_id: '',
         project_id: '',
+        payment_method: 'Cash',
         proof_url: '',
+        document: null,
+        bank_proof: null,
         date: new Date().toISOString().split('T')[0]
       });
       fetchAllData();
@@ -111,7 +125,7 @@ const AdminDashboard = () => {
     try {
       await createUser(userForm);
       showMessage('success', 'Member account successfully registered.');
-      setUserForm({ name: '', email: '', role: 'Abonné' });
+      setUserForm({ name: '', email: '', role: 'Subscriber', password: '', cin_number: '', phone: '' });
       fetchAllData();
     } catch (err) {
       showMessage('error', 'Failed to add new member.');
@@ -125,6 +139,44 @@ const AdminDashboard = () => {
       fetchAllData();
     } catch (err) {
       showMessage('error', 'Failed to update member role.');
+    }
+  };
+
+  const handleAssignCommitteeMember = async (e) => {
+    e.preventDefault();
+    try {
+      await addProjectMember(projectMemberForm.project_id, projectMemberForm.user_id, projectMemberForm.committee_role);
+      showMessage('success', 'Project committee assignment updated.');
+      setProjectMemberForm({ project_id: '', user_id: '', committee_role: 'Member' });
+      fetchAllData();
+    } catch (err) {
+      showMessage('error', 'Failed to assign project committee member.');
+    }
+  };
+
+  const handleRemoveCommitteeMember = async (projectId, userId) => {
+    try {
+      await removeProjectMember(projectId, userId);
+      showMessage('success', 'Member removed from project committee.');
+      fetchAllData();
+    } catch (err) {
+      showMessage('error', 'Failed to remove member from committee.');
+    }
+  };
+
+  const handleAnnualReportPublish = async (e) => {
+    e.preventDefault();
+    if (!annualReportForm.file) {
+      showMessage('error', 'Please select a report file before publishing.');
+      return;
+    }
+    try {
+      await publishAnnualReport(annualReportForm.year, annualReportForm.file);
+      showMessage('success', 'Annual bureau report published successfully.');
+      setAnnualReportForm({ year: new Date().getFullYear(), file: null });
+      fetchAllData();
+    } catch (err) {
+      showMessage('error', 'Failed to publish annual report.');
     }
   };
 
@@ -301,6 +353,19 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Payment Method</label>
+                  <select
+                    value={txForm.payment_method}
+                    onChange={(e) => setTxForm({ ...txForm, payment_method: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Bank">Bank Transfer</option>
+                    <option value="Cheque">Cheque</option>
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Proof Link / Document URL (Optional)</label>
                   <input
                     type="url"
@@ -310,6 +375,28 @@ const AdminDashboard = () => {
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Upload Proof (photo / PDF)</label>
+                  <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={(e) => setTxForm({ ...txForm, document: e.target.files[0] || null })}
+                    className="w-full text-sm"
+                  />
+                </div>
+
+                {txForm.payment_method === 'Bank' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Bank Proof (required for bank transfer)</label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(e) => setTxForm({ ...txForm, bank_proof: e.target.files[0] || null })}
+                      className="w-full text-sm"
+                    />
+                  </div>
+                )}
 
                 <div className="md:col-span-3 text-right">
                   <button
@@ -444,26 +531,115 @@ const AdminDashboard = () => {
               </form>
             </div>
 
-            {/* Active Projects Directory */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Committee Assignment</h3>
+                <p className="text-xs text-slate-500">Assign members to each project committee and define their responsibility</p>
+              </div>
+
+              <form onSubmit={handleAssignCommitteeMember} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Project</label>
+                  <select
+                    value={projectMemberForm.project_id}
+                    onChange={(e) => setProjectMemberForm({ ...projectMemberForm, project_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  >
+                    <option value="">Select project</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.title}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Member</label>
+                  <select
+                    value={projectMemberForm.user_id}
+                    onChange={(e) => setProjectMemberForm({ ...projectMemberForm, user_id: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  >
+                    <option value="">Select member</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Committee Role</label>
+                  <select
+                    value={projectMemberForm.committee_role}
+                    onChange={(e) => setProjectMemberForm({ ...projectMemberForm, committee_role: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  >
+                    <option value="Member">Member</option>
+                    <option value="Coordinator">Coordinator</option>
+                    <option value="Treasurer">Treasurer</option>
+                    <option value="Secretary">Secretary</option>
+                  </select>
+                </div>
+                <div className="md:col-span-3 text-right">
+                  <button type="submit" className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium">Assign Member</button>
+                </div>
+              </form>
+            </div>
+
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-200">
                 <h3 className="text-base font-bold text-slate-900">Active Association Initiatives</h3>
               </div>
               <div className="divide-y divide-slate-200">
                 {projects.map((p) => (
-                  <div key={p.id} className="p-5 flex justify-between items-center hover:bg-slate-50 transition">
-                    <div>
-                      <h4 className="font-bold text-slate-900">{p.title}</h4>
-                      <p className="text-xs text-slate-500 mt-1">{p.description || 'No description provided.'}</p>
-                    </div>
-                    <div className="text-right">
+                  <div key={p.id} className="p-5 space-y-3 hover:bg-slate-50 transition">
+                    <div className="flex justify-between items-center gap-3">
+                      <div>
+                        <h4 className="font-bold text-slate-900">{p.title}</h4>
+                        <p className="text-xs text-slate-500 mt-1">{p.description || 'No description provided.'}</p>
+                      </div>
                       <span className="text-xs bg-emerald-50 text-emerald-700 font-semibold px-2.5 py-1 rounded-full border border-emerald-200">
                         Budget: {p.budget} MAD
                       </span>
                     </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(p.committee_members || []).length ? p.committee_members.map((member) => (
+                        <span key={`${p.id}-${member.id}`} className="inline-flex items-center gap-2 text-xs bg-slate-100 text-slate-700 border border-slate-200 rounded-full px-2.5 py-1">
+                          {member.name} ({member.committee_role || 'Member'})
+                          <button onClick={() => handleRemoveCommitteeMember(p.id, member.id)} className="text-rose-600 font-semibold">×</button>
+                        </span>
+                      )) : <span className="text-xs text-slate-400">No committee members assigned.</span>}
+                    </div>
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Annual Bureau Report Publication</h3>
+                <p className="text-xs text-slate-500">Upload the official PDF for subscribers to view from their dashboard</p>
+              </div>
+              <form onSubmit={handleAnnualReportPublish} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Year</label>
+                  <input
+                    type="number"
+                    value={annualReportForm.year}
+                    onChange={(e) => setAnnualReportForm({ ...annualReportForm, year: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Report File</label>
+                  <input
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => setAnnualReportForm({ ...annualReportForm, file: e.target.files[0] || null })}
+                    className="w-full text-sm"
+                  />
+                </div>
+                <div className="md:col-span-3 text-right">
+                  <button type="submit" className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium">Publish Report</button>
+                </div>
+              </form>
             </div>
 
           </div>
@@ -506,14 +682,48 @@ const AdminDashboard = () => {
                 </div>
 
                 <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+                  <input
+                    type="password"
+                    required
+                    value={userForm.password || ''}
+                    onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                    placeholder="temporary password"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">CIN Number</label>
+                  <input
+                    type="text"
+                    value={userForm.cin_number || ''}
+                    onChange={(e) => setUserForm({ ...userForm, cin_number: e.target.value })}
+                    placeholder="WB123456"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Phone</label>
+                  <input
+                    type="tel"
+                    value={userForm.phone || ''}
+                    onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                    placeholder="+2126..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600"
+                  />
+                </div>
+
+                <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Association Role</label>
                   <select
                     value={userForm.role}
                     onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-emerald-600"
                   >
-                    {BUREAU_ROLES.map((r) => (
-                      <option key={r} value={r}>{r}</option>
+                    {ROLE_OPTIONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
                     ))}
                   </select>
                 </div>
@@ -552,8 +762,8 @@ const AdminDashboard = () => {
                         <td className="px-6 py-4 font-semibold text-slate-900">{m.name}</td>
                         <td className="px-6 py-4 text-slate-500 text-xs">{m.email}</td>
                         <td className="px-6 py-4">
-                          <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${m.role === 'Abonné' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                            {m.role}
+                            <span className={`text-xs px-2.5 py-0.5 rounded-full border font-medium ${m.role === 'Subscriber' || m.role === 'Abonné' ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                            {getLabelForRole(m.role)}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right">
@@ -562,8 +772,8 @@ const AdminDashboard = () => {
                             onChange={(e) => handleRoleChange(m.id, e.target.value)}
                             className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-600"
                           >
-                            {BUREAU_ROLES.map((r) => (
-                              <option key={r} value={r}>{r}</option>
+                            {ROLE_OPTIONS.map((r) => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
                             ))}
                           </select>
                         </td>
